@@ -31,7 +31,10 @@ class AddProfileNotifier extends _$AddProfileNotifier with AppLogger {
     ref.disposeDelay(const Duration(minutes: 1));
     ref.onDispose(() {
       loggy.debug("disposing");
-      _cancelToken?.cancel();
+      // SuperX fix: do NOT cancel the in-flight subscription download on dispose.
+      // The add-profile modal disposing/invalidating mid-fetch previously aborted the
+      // HTTP request → ProfileFailure.cancelByUser, so URL imports failed (~1s). Let the
+      // download finish so the profile is saved regardless of modal lifecycle.
     });
     listenSelf((previous, next) {
       final t = ref.read(translationsProvider).requireValue;
@@ -50,9 +53,6 @@ class AddProfileNotifier extends _$AddProfileNotifier with AppLogger {
                 .showCustomAlertFromErr(t.presentError(error, action: t.pages.profiles.msg.add.failure));
           }
       }
-    });
-    ref.onDispose(() {
-      if (!(_cancelToken?.isCancelled ?? true)) _cancelToken?.cancel();
     });
     return const AsyncData(null);
   }
