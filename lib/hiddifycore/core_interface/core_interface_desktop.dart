@@ -72,13 +72,15 @@ class CoreInterfaceDesktop extends CoreInterface with InfraLogger {
     // final err = errPtr2.cast<Utf8>().toDartString();
     // throw Exception('stop: $err');
     const channelOption = ChannelCredentials.insecure();
-    final helloClient = HelloClient(
-      ClientChannel(
-        '127.0.0.1',
-        port: port,
-        options: const ChannelOptions(credentials: channelOption),
-      ),
-    );
+    // SuperX: GUI↔core over Unix Domain Socket — no exposed TCP loopback port.
+    final socketPath = p.join(directories.workingDir.path, 'core.sock');
+    final listenAddr = "unix:$socketPath";
+    ClientChannel unixChannel() => ClientChannel(
+          InternetAddress(socketPath, type: InternetAddressType.unix),
+          port: 0,
+          options: const ChannelOptions(credentials: channelOption),
+        );
+    final helloClient = HelloClient(unixChannel());
 
     try {
       await helloClient.sayHello(HelloRequest(name: "test"));
@@ -91,7 +93,7 @@ class CoreInterfaceDesktop extends CoreInterface with InfraLogger {
         directories.workingDir.path.toNativeUtf8().cast(),
         directories.tempDir.path.toNativeUtf8().cast(),
         SetupMode.GRPC_NORMAL_INSECURE.value,
-        "127.0.0.1:$port".toNativeUtf8().cast(),
+        listenAddr.toNativeUtf8().cast(),
         secret.toNativeUtf8().cast(),
         0,
         debug ? 1 : 0,
@@ -104,19 +106,7 @@ class CoreInterfaceDesktop extends CoreInterface with InfraLogger {
       final res = await helloClient.sayHello(HelloRequest(name: "test"));
       loggy.info(res.toString());
     }
-    bgClient = fgClient = CoreClient(
-      ClientChannel(
-        'localhost',
-        port: port,
-        options: const ChannelOptions(
-          credentials: ChannelCredentials.insecure(),
-          // credentials: ChannelCredentials.secure(
-          //   password: secret,
-          //   onBadCertificate: (certificate, host) => true,
-          // ),
-        ),
-      ),
-    );
+    bgClient = fgClient = CoreClient(unixChannel());
 
     return "";
   }
