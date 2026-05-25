@@ -182,6 +182,10 @@ class ConnectionButton extends HookConsumerWidget {
         _ => false,
       },
       useImage: today.day >= 19 && today.day <= 23 && today.month == 3,
+      centerText: switch (connectionStatus) {
+        AsyncData(value: Connected()) => "On",
+        _ => "Off",
+      },
       secureLabel: secureLabel,
     );
   }
@@ -197,6 +201,7 @@ class _ConnectionButton extends StatelessWidget {
     required this.useImage,
     required this.newButtonColor,
     required this.animated,
+    required this.centerText,
     required this.secureLabel,
   });
 
@@ -206,6 +211,7 @@ class _ConnectionButton extends StatelessWidget {
   final Color buttonColor;
   final AssetGenImage image;
   final bool useImage;
+  final String centerText;
   final String secureLabel;
 
   final Color newButtonColor;
@@ -239,15 +245,17 @@ class _ConnectionButton extends StatelessWidget {
                 onTap: onTap,
                 child: Padding(
                   padding: const EdgeInsets.all(36),
-                  child: TweenAnimationBuilder(
+                  child: TweenAnimationBuilder<Color?>(
                     tween: ColorTween(end: buttonColor),
                     duration: const Duration(milliseconds: 250),
                     builder: (context, value, child) {
-                      if (useImage) {
-                        return image.image();
-                      } else {
-                        return Assets.images.logo.svg(colorFilter: ColorFilter.mode(value!, BlendMode.srcIn));
-                      }
+                      return FittedBox(
+                        fit: BoxFit.contain,
+                        child: Text(
+                          centerText,
+                          style: TextStyle(color: value, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                        ),
+                      );
                     },
                   ),
                 ),
